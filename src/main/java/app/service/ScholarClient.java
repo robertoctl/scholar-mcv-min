@@ -1,15 +1,15 @@
 package app.service;
 
-import app.model.Author;
+import app.model.PlaceResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hc.client5.http.classic.methods.HttpGet;
+import lombok.RequiredArgsConstructor;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.core5.http.ClassicHttpResponse;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -19,27 +19,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ScholarClient {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public List<Author> searchAuthors(String query) throws IOException {
-        String apiBase = System.getenv("SCHOLAR_API_BASE");
+    @Value("${serp.api.base}")
+    private String apiBase;
+
+    @Value("${serp.api.key}")
+    private String apiKey;
+
+    public List<PlaceResult> searchPlaces(String query) throws IOException {
         if (apiBase == null || apiBase.isBlank()) {
-            // Mock data so the app works offline
-            List<Author> mock = new ArrayList<>();
-            mock.add(new Author("a1","Ada Lovelace","Analytical Engine Institute", 12000, 45));
-            mock.add(new Author("a2","Alan Turing","Bletchley Park", 22000, 60));
-            return mock;
+            return List.of(
+                    PlaceResult.builder().title("Ada Lovelace Coffee").type("Mock Shop").address("London").build(),
+                    PlaceResult.builder().title("Alan Turing Cafe").type("Mock Shop").address("Manchester").build()
+            );
         }
 
-        String url = apiBase + URLEncoder.encode(query, StandardCharsets.UTF_8);
+        String url = apiBase
+                + "?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)
+                + "&engine=google"
+                + "&api_key=" + apiKey;
 
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpGet request = new HttpGet(url);
 
-            // Recommended in HttpClient 5.x: use a response handler
-            HttpClientResponseHandler<List<Author>> handler = response -> {
+            HttpClientResponseHandler<List<PlaceResult>> handler = response -> {
                 int status = response.getCode();
                 String respBody = response.getEntity() != null
                         ? EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8)
@@ -47,20 +54,12 @@ public class ScholarClient {
 
                 if (status >= 200 && status < 300) {
                     JsonNode root = mapper.readTree(respBody);
-                    List<Author> out = new ArrayList<>();
-
-                    // Expecting a JSON array; also support wrappers like { "items": [...] }
-                    if (root.isArray()) {
-                        for (JsonNode n : root) {
-                            out.add(toAuthor(n));
+                    JsonNode places = root.path("local_results").path("places");
+                    List<PlaceResult> out = new ArrayList<>();
+                    if (places.isArray()) {
+                        for (JsonNode n : places) {
+                            out.add(toPlace(n));
                         }
-                    } else if (root.has("items") && root.get("items").isArray()) {
-                        for (JsonNode n : root.get("items")) {
-                            out.add(toAuthor(n));
-                        }
-                    } else {
-                        // Single object fallback
-                        out.add(toAuthor(root));
                     }
                     return out;
                 } else {
@@ -72,14 +71,11 @@ public class ScholarClient {
         }
     }
 
-    // Small helper to map a JSON node to your Author model
-    private Author toAuthor(JsonNode n) {
-        return new Author(
-                n.path("id").asText(null),
-                n.path("name").asText(null),
-                n.path("affiliation").asText(null),
-                n.path("citations").isNumber() ? n.get("citations").asInt() : null,
-                n.path("hIndex").isNumber()   ? n.get("hIndex").asInt()   : null
-        );
+    private PlaceResult toPlace(JsonNode n) {
+        return PlaceResult.builder()
+                .title(n.path("title").asText(null))
+                .type(n.path("type").asText(null))
+                .address(n.path("address").asText(null))
+                .build();
     }
 }

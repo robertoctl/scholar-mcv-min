@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Place Search</title>
+    <link rel="stylesheet" th:href="@{/style.css}" href="/style.css" />
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: .5rem .7rem; border: 1px solid #ddd; }
+        thead { background: #f5f5f5; }
+        .muted { color: #666; font-size: .9em; }
+    </style>
+</head>
+<body>
+<h1>Place Search</h1>
+
+<!-- Search form -->
+<form method="get" action="/places">
+    <input type="text" name="q" placeholder="Type a query… e.g. coffee" th:value="${q}" />
+    <button type="submit">Search</button>
+</form>
+
+<!-- Error -->
+<div th:if="${error}" style="color:red; margin-top:1rem;">
+    <strong>Error:</strong> <span th:text="${error}">Something went wrong</span>
+</div>
+
+<!-- Results table -->
+<table th:if="${results != null and !#lists.isEmpty(results)}">
+    <thead>
+    <tr>
+        <th>Title</th>
+        <th>Type</th>
+        <th>Address</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="p : ${results}">
+        <td th:text="${p.title != null ? p.title : 'N/A'}"></td>
+        <td th:text="${p.type != null ? p.type : 'N/A'}"></td>
+        <td th:text="${p.address != null ? p.address : 'N/A'}"></td>
+    </tr>
+    </tbody>
+</table>
+
+<!-- Empty state -->
+<p th:if="${results == null or #lists.isEmpty(results)}" class="muted">
+    No results yet. Try searching for <em>coffee</em> or <em>pizza</em>.
+</p>
+</body>
+</html>
