@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Author Search</title>
+  <link rel="stylesheet" th:href="@{/style.css}" href="/style.css"/>
+</head>
+<body>
+  <h1>Author Search (Google Scholar concept)</h1>
+
+  <form method="get" action="/authors">
+    <input type="text" name="query" placeholder="Type author name..." th:value="${query}" />
+    <button type="submit">Search</button>
+  </form>
+
+  <div th:if="${error}" style="color: red; margin-top: 1rem;">
+    <strong>Error:</strong> <span th:text="${error}">Something went wrong</span>
+  </div>
+
+  <table th:if="${#lists.size(authors) > 0}" border="1" cellpadding="6" cellspacing="0" style="margin-top:1rem;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Affiliation</th>
+        <th>Citations</th>
+        <th>h-index</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="a : ${authors}">
+        <td th:text="${a.id}">a1</td>
+        <td th:text="${a.name}">Ada Lovelace</td>
+        <td th:text="${a.affiliation}">Analytical Engine Institute</td>
+        <td th:text="${a.citations}">12000</td>
+        <td th:text="${a.hIndex}">45</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p th:if="${#lists.isEmpty(authors)}" style="margin-top:1rem;">No results yet. Try searching.</p>
+
+  <footer style="margin-top:2rem; font-size: 0.9em; color: #555;">
+    <p>This demo uses Apache HttpClient. Set <code>SCHOLAR_API_BASE</code> to call a real endpoint returning a JSON array of authors.</p>
+  </footer>
+</body>
+</html>
