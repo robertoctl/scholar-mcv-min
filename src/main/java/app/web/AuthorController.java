@@ -31,8 +31,6 @@ public class AuthorController {
             }
         } catch (IOException e) {
             error = e.getMessage();
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
         }
         model.addAttribute("query", query);
         model.addAttribute("authors", results);
